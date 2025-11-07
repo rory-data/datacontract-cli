@@ -1,0 +1,291 @@
+<ac:layout>
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h1>Data Contract: {{ datacontract.id }}</h1>
+      {% if datacontract.info %}
+      <table>
+        <tbody>
+          {% if datacontract.info.title %}
+          <tr>
+            <th>Title</th>
+            <td>{{ datacontract.info.title }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.id %}
+          <tr>
+            <th>ID</th>
+            <td><code>{{ datacontract.id }}</code></td>
+          </tr>
+          {% endif %}
+          {% if datacontract.info.version %}
+          <tr>
+            <th>Version</th>
+            <td>{{ datacontract.info.version }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.dataContractSpecification %}
+          <tr>
+            <th>Specification Version</th>
+            <td>{{ datacontract.dataContractSpecification }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.info.status %}
+          <tr>
+            <th>Status</th>
+            <td>{{ datacontract.info.status }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.info.owner %}
+          <tr>
+            <th>Owner</th>
+            <td>{{ datacontract.info.owner }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.info.description %}
+          <tr>
+            <th>Description</th>
+            <td>{{ datacontract.info.description }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.tags %}
+          <tr>
+            <th>Tags</th>
+            <td>{{ datacontract.tags | join(', ') }}</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+      {% endif %}
+    </ac:layout-cell>
+  </ac:layout-section>
+
+  {% if mermaid_diagram %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Data Model Diagram</h2>
+      <ac:structured-macro ac:name="code">
+        <ac:parameter name="language">mermaid</ac:parameter>
+        <ac:parameter name="theme">neutral</ac:parameter>
+        <ac:plain-text-body><![CDATA[{{ mermaid_diagram }}]]></ac:plain-text-body>
+      </ac:structured-macro>
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  {% if datacontract.models %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Models</h2>
+      {% for model_name, model in datacontract.models.items() %}
+      <h3>{{ model.title or model_name }}</h3>
+      {% if model.description %}
+      <p>{{ model.description }}</p>
+      {% endif %}
+      {% if model.type %}
+      <p><strong>Type:</strong> <code>{{ model.type }}</code></p>
+      {% endif %}
+
+      <h4>Fields</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>Field Name</th>
+            <th>Type</th>
+            <th>Required</th>
+            <th>Primary Key</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for field_name, field in model.fields.items() %}
+          <tr>
+            <td><strong>{{ field_name }}</strong></td>
+            <td><code>{{ field.type or 'unknown' }}</code></td>
+            <td>{% if field.required %}Yes{% else %}No{% endif %}</td>
+            <td>{% if field.primaryKey %}Yes{% else %}No{% endif %}</td>
+            <td>{{ field.description or '' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endfor %}
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  {% if datacontract.servers %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Servers</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Server</th>
+            <th>Type</th>
+            <th>Environment</th>
+            <th>Format</th>
+            <th>Location</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for server_name, server in datacontract.servers.items() %}
+          <tr>
+            <td><strong>{{ server_name }}</strong></td>
+            <td>{{ server.type or 'N/A' }}</td>
+            <td>{{ server.environment or 'N/A' }}</td>
+            <td><code>{{ server.format or 'N/A' }}</code></td>
+            <td>
+              {% if server.location %}{{ server.location }}{% endif %}
+              {% if server.path %}<br/><strong>Path:</strong> <code>{{ server.path }}</code>{% endif %}
+              {% if server.host %}<br/><strong>Host:</strong> {{ server.host }}{% endif %}
+              {% if server.port %}<br/><strong>Port:</strong> {{ server.port }}{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  {% if datacontract.terms %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Terms &amp; Conditions</h2>
+      <table>
+        <tbody>
+          {% if datacontract.terms.usage %}
+          <tr>
+            <th>Usage</th>
+            <td>{{ datacontract.terms.usage }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.terms.limitations %}
+          <tr>
+            <th>Limitations</th>
+            <td>{{ datacontract.terms.limitations }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.terms.billing %}
+          <tr>
+            <th>Billing</th>
+            <td>{{ datacontract.terms.billing }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.terms.noticePeriod %}
+          <tr>
+            <th>Notice Period</th>
+            <td>{{ datacontract.terms.noticePeriod }}</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  {% if datacontract.servicelevels %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Service Levels</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Value</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if datacontract.servicelevels.availability %}
+          <tr>
+            <td><strong>Availability</strong></td>
+            <td>{{ datacontract.servicelevels.availability.percentage }}%</td>
+            <td>{{ datacontract.servicelevels.availability.description or '-' }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.servicelevels.retention %}
+          <tr>
+            <td><strong>Retention</strong></td>
+            <td>{{ datacontract.servicelevels.retention.period }} {{ datacontract.servicelevels.retention.unit }}</td>
+            <td>{{ datacontract.servicelevels.retention.description or '-' }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.servicelevels.latency %}
+          <tr>
+            <td><strong>Latency</strong></td>
+            <td>{{ datacontract.servicelevels.latency.threshold }} {{ datacontract.servicelevels.latency.unit }}</td>
+            <td>{{ datacontract.servicelevels.latency.description or '-' }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.servicelevels.freshness %}
+          <tr>
+            <td><strong>Freshness</strong></td>
+            <td>{{ datacontract.servicelevels.freshness.threshold }} {{ datacontract.servicelevels.freshness.unit }}</td>
+            <td>{{ datacontract.servicelevels.freshness.description or '-' }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.servicelevels.frequency %}
+          <tr>
+            <td><strong>Frequency</strong></td>
+            <td>{{ datacontract.servicelevels.frequency.interval }} {{ datacontract.servicelevels.frequency.unit }}</td>
+            <td>{{ datacontract.servicelevels.frequency.description or '-' }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.servicelevels.support %}
+          <tr>
+            <td><strong>Support</strong></td>
+            <td>{{ datacontract.servicelevels.support.responseTime }} {{ datacontract.servicelevels.support.unit }}</td>
+            <td>{{ datacontract.servicelevels.support.description or '-' }}</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  {% if quality_specification %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Quality Specification</h2>
+      {% if datacontract.quality.type %}
+      <p><strong>Type:</strong> {{ datacontract.quality.type }}</p>
+      {% endif %}
+      <ac:structured-macro ac:name="code">
+        <ac:parameter name="language">yaml</ac:parameter>
+        <ac:plain-text-body><![CDATA[{{ quality_specification }}]]></ac:plain-text-body>
+      </ac:structured-macro>
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  {% if datacontract.definitions %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Definitions</h2>
+      {% for definition_name, definition in datacontract.definitions.items() %}
+      <h3>{{ definition.title or definition_name }}</h3>
+      {% if definition.description %}
+      <p>{{ definition.description }}</p>
+      {% endif %}
+      {% if definition.type %}
+      <p><strong>Type:</strong> <code>{{ definition.type }}</code></p>
+      {% endif %}
+      {% endfor %}
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Full Data Contract YAML</h2>
+      <ac:structured-macro ac:name="code">
+        <ac:parameter name="language">yaml</ac:parameter>
+        <ac:parameter name="collapse">true</ac:parameter>
+        <ac:plain-text-body><![CDATA[{{ datacontract_yaml }}]]></ac:plain-text-body>
+      </ac:structured-macro>
+      <p><small><em>Generated on {{ formatted_date }} by datacontract-cli {{ datacontract_cli_version }}</em></small></p>
+    </ac:layout-cell>
+  </ac:layout-section>
+</ac:layout>

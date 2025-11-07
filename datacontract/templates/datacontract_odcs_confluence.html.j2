@@ -1,0 +1,254 @@
+<ac:layout>
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h1>Data Contract: {{ datacontract.id }}</h1>
+      <table>
+        <tbody>
+          {% if datacontract.uuid %}
+          <tr>
+            <th>UUID</th>
+            <td><code>{{ datacontract.uuid }}</code></td>
+          </tr>
+          {% endif %}
+          {% if datacontract.id %}
+          <tr>
+            <th>ID</th>
+            <td><code>{{ datacontract.id }}</code></td>
+          </tr>
+          {% endif %}
+          {% if datacontract.version %}
+          <tr>
+            <th>Version</th>
+            <td>{{ datacontract.version }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.dataContractSpecification %}
+          <tr>
+            <th>Specification</th>
+            <td>{{ datacontract.dataContractSpecification }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.status %}
+          <tr>
+            <th>Status</th>
+            <td>{{ datacontract.status }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.description %}
+          <tr>
+            <th>Description</th>
+            <td>{{ datacontract.description }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.tags %}
+          <tr>
+            <th>Tags</th>
+            <td>{{ datacontract.tags | join(', ') }}</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </ac:layout-cell>
+  </ac:layout-section>
+
+  {% if mermaid_diagram %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Data Model Diagram</h2>
+      <ac:structured-macro ac:name="code">
+        <ac:parameter name="language">mermaid</ac:parameter>
+        <ac:parameter name="theme">neutral</ac:parameter>
+        <ac:plain-text-body><![CDATA[{{ mermaid_diagram }}]]></ac:plain-text-body>
+      </ac:structured-macro>
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  {% if datacontract.schema_ %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Schema</h2>
+      {% for schema in datacontract.schema_ %}
+      <h3>{{ schema.name }}{% if schema.physicalName and schema.physicalName != schema.name %} (<code>{{ schema.physicalName }}</code>){% endif %}</h3>
+      {% if schema.description %}
+      <p>{{ schema.description }}</p>
+      {% endif %}
+      {% if schema.physicalType or schema.logicalType %}
+      <p><strong>Type:</strong> <code>{{ schema.physicalType or schema.logicalType }}</code></p>
+      {% endif %}
+      {% if schema.dataGranularityDescription %}
+      <p><strong>Granularity:</strong> {{ schema.dataGranularityDescription }}</p>
+      {% endif %}
+
+      {% if schema.properties %}
+      <h4>Properties</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Business Name</th>
+            <th>Type</th>
+            <th>Required</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for property in schema.properties %}
+          <tr>
+            <td><strong>{{ property.name }}</strong></td>
+            <td>{{ property.businessName or '-' }}</td>
+            <td><code>{{ property.physicalType or property.logicalType or 'unknown' }}</code></td>
+            <td>{% if property.isNullable == false %}Yes{% else %}No{% endif %}</td>
+            <td>{{ property.description or '' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if schema.quality %}
+      <h4>Quality Rules</h4>
+      {% for quality in schema.quality %}
+      <p>
+        <strong>Rule:</strong> {{ quality.rule }}
+        {% if quality.description %} - {{ quality.description }}{% endif %}
+        {% if quality.dimension %}<br /><em>Dimension: {{ quality.dimension }}</em>{% endif %}
+      </p>
+      {% endfor %}
+      {% endif %}
+      {% endfor %}
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  {% if datacontract.servers %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Servers</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Server</th>
+            <th>Type</th>
+            <th>Environment</th>
+            <th>Format</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for server in datacontract.servers %}
+          <tr>
+            <td><strong>{{ server.server or 'N/A' }}</strong></td>
+            <td>{{ server.type or 'N/A' }}</td>
+            <td>{{ server.environment or 'N/A' }}</td>
+            <td><code>{{ server.format or 'N/A' }}</code></td>
+            <td>
+              {% if server.location %}{{ server.location }}{% endif %}
+              {% if server.path %}<br/><strong>Path:</strong> <code>{{ server.path }}</code>{% endif %}
+              {% if server.host %}<br/><strong>Host:</strong> {{ server.host }}{% endif %}
+              {% if server.port %}<br/><strong>Port:</strong> {{ server.port }}{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  {% if datacontract.team %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Team</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Date In</th>
+            <th>Date Out</th>
+            <th>Comment</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for member in datacontract.team %}
+          <tr>
+            <td>{{ member.username or 'N/A' }}</td>
+            <td>{{ member.role or 'N/A' }}</td>
+            <td>{{ member.dateIn or '-' }}</td>
+            <td>{{ member.dateOut or '-' }}</td>
+            <td>{{ member.comment or '-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  {% if datacontract.slaProperties %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Service Level Agreements</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Value</th>
+            <th>Unit</th>
+            <th>Element</th>
+            <th>Driver</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sla in datacontract.slaProperties %}
+          <tr>
+            <td>{{ sla.property }}</td>
+            <td>{{ sla.value }}</td>
+            <td>{{ sla.unit or '-' }}</td>
+            <td>{{ sla.element or '-' }}</td>
+            <td>{{ sla.driver or '-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  {% if datacontract.customProperties %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Custom Properties</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for prop in datacontract.customProperties %}
+          <tr>
+            <td><strong>{{ prop.property }}</strong></td>
+            <td>{{ prop.value }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Full Data Contract YAML</h2>
+      <ac:structured-macro ac:name="code">
+        <ac:parameter name="language">yaml</ac:parameter>
+        <ac:parameter name="collapse">true</ac:parameter>
+        <ac:plain-text-body><![CDATA[{{ datacontract_yaml }}]]></ac:plain-text-body>
+      </ac:structured-macro>
+      <p><small><em>Generated on {{ formatted_date }} by datacontract-cli {{ datacontract_cli_version }}</em></small></p>
+    </ac:layout-cell>
+  </ac:layout-section>
+</ac:layout>
