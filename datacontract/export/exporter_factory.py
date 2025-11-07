@@ -1,4 +1,5 @@
 import importlib
+import importlib.util
 import sys
 
 from datacontract.export.exporter import Exporter, ExportFormat
