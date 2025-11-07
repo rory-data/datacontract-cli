@@ -47,6 +47,7 @@ class ExportFormat(str, Enum):
     custom = "custom"
     excel = "excel"
     dqx = "dqx"
+    confluence = "confluence"
 
     @classmethod
     def get_supported_formats(cls):
@@ -77,7 +78,9 @@ def _check_models_for_export(
     return model_name, model_value
 
 
-def _determine_sql_server_type(data_contract: DataContractSpecification, sql_server_type: str, server: str = None):
+def _determine_sql_server_type(
+    data_contract: DataContractSpecification, sql_server_type: str, server: str | None = None
+):
     if sql_server_type == "auto":
         if data_contract.servers is None or len(data_contract.servers) == 0:
             raise RuntimeError("Export with server_type='auto' requires servers in the data contract.")
