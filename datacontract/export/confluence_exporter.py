@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import datetime
 import logging
-import warnings
 from importlib.metadata import version
 from typing import TYPE_CHECKING
 
@@ -102,15 +101,12 @@ def get_j2_template(template: str) -> Template:
 def get_dcs_quality_specification(data_contract_spec: DataContractSpecification) -> str | None:
     """Extract quality specification from DataContractSpecification, handling deprecation warnings."""
 
-    # Suppress deprecation warnings for backward compatibility with v1.0.0 contracts
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        if data_contract_spec.quality is not None and isinstance(data_contract_spec.quality.specification, str):
-            return data_contract_spec.quality.specification
-        elif data_contract_spec.quality is not None and isinstance(data_contract_spec.quality.specification, object):
-            if data_contract_spec.quality.type == "great-expectations":
-                return yaml.dump(data_contract_spec.quality.specification, sort_keys=False, default_style="|")
-            else:
-                return yaml.dump(data_contract_spec.quality.specification, sort_keys=False)
+    if data_contract_spec.quality is not None and isinstance(data_contract_spec.quality.specification, str):
+        return data_contract_spec.quality.specification
+    elif data_contract_spec.quality is not None and isinstance(data_contract_spec.quality.specification, object):
+        if data_contract_spec.quality.type == "great-expectations":
+            return yaml.dump(data_contract_spec.quality.specification, sort_keys=False, default_style="|")
         else:
-            return None
+            return yaml.dump(data_contract_spec.quality.specification, sort_keys=False)
+    else:
+        return None
