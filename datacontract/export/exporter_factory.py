@@ -218,6 +218,6 @@ exporter_factory.register_lazy_exporter(
 
 exporter_factory.register_lazy_exporter(
     name=ExportFormat.confluence,
-    module_path="datacontract.export.confluence_converter",
+    module_path="datacontract.export.confluence_exporter",
     class_name="ConfluenceExporter",
 )

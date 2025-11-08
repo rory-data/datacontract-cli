@@ -22,23 +22,43 @@
             <td>{{ datacontract.version }}</td>
           </tr>
           {% endif %}
-          {% if datacontract.dataContractSpecification %}
-          <tr>
-            <th>Specification</th>
-            <td>{{ datacontract.dataContractSpecification }}</td>
-          </tr>
-          {% endif %}
           {% if datacontract.status %}
           <tr>
             <th>Status</th>
             <td>{{ datacontract.status }}</td>
           </tr>
           {% endif %}
-          {% if datacontract.description %}
+          {% if datacontract.dataProduct %}
           <tr>
-            <th>Description</th>
-            <td>{{ datacontract.description }}</td>
+            <th>Data Product</th>
+            <td>{{ datacontract.dataProduct }}</td>
           </tr>
+          {% endif %}
+          {% if datacontract.tenant %}
+          <tr>
+            <th>Tenant</th>
+            <td>{{ datacontract.tenant }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.description %}
+          {% if datacontract.description.purpose %}
+          <tr>
+            <th>Purpose</th>
+            <td>{{ datacontract.description.purpose }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.description.usage %}
+          <tr>
+            <th>Usage</th>
+            <td>{{ datacontract.description.usage }}</td>
+          </tr>
+          {% endif %}
+          {% if datacontract.description.limitations %}
+          <tr>
+            <th>Limitations</th>
+            <td>{{ datacontract.description.limitations }}</td>
+          </tr>
+          {% endif %}
           {% endif %}
           {% if datacontract.tags %}
           <tr>
@@ -46,23 +66,16 @@
             <td>{{ datacontract.tags | join(', ') }}</td>
           </tr>
           {% endif %}
+          {% if datacontract.contractCreatedTs %}
+          <tr>
+            <th>Contract Created</th>
+            <td>{{ datacontract.contractCreatedTs }}</td>
+          </tr>
+          {% endif %}
         </tbody>
       </table>
     </ac:layout-cell>
   </ac:layout-section>
-
-  {% if mermaid_diagram %}
-  <ac:layout-section ac:type="single">
-    <ac:layout-cell>
-      <h2>Data Model Diagram</h2>
-      <ac:structured-macro ac:name="code">
-        <ac:parameter name="language">mermaid</ac:parameter>
-        <ac:parameter name="theme">neutral</ac:parameter>
-        <ac:plain-text-body><![CDATA[{{ mermaid_diagram }}]]></ac:plain-text-body>
-      </ac:structured-macro>
-    </ac:layout-cell>
-  </ac:layout-section>
-  {% endif %}
 
   {% if datacontract.schema_ %}
   <ac:layout-section ac:type="single">
@@ -121,37 +134,39 @@
   </ac:layout-section>
   {% endif %}
 
-  {% if datacontract.servers %}
+  {% if datacontract.support %}
   <ac:layout-section ac:type="single">
     <ac:layout-cell>
-      <h2>Servers</h2>
+      <h2>Support</h2>
       <table>
         <thead>
           <tr>
-            <th>Server</th>
-            <th>Type</th>
-            <th>Environment</th>
-            <th>Format</th>
-            <th>Details</th>
+            <th>Channel</th>
+            <th>Tool</th>
+            <th>Description</th>
+            <th>URL</th>
           </tr>
         </thead>
         <tbody>
-          {% for server in datacontract.servers %}
+          {% for support in datacontract.support %}
           <tr>
-            <td><strong>{{ server.server or 'N/A' }}</strong></td>
-            <td>{{ server.type or 'N/A' }}</td>
-            <td>{{ server.environment or 'N/A' }}</td>
-            <td><code>{{ server.format or 'N/A' }}</code></td>
-            <td>
-              {% if server.location %}{{ server.location }}{% endif %}
-              {% if server.path %}<br/><strong>Path:</strong> <code>{{ server.path }}</code>{% endif %}
-              {% if server.host %}<br/><strong>Host:</strong> {{ server.host }}{% endif %}
-              {% if server.port %}<br/><strong>Port:</strong> {{ server.port }}{% endif %}
-            </td>
+            <td><strong>{{ support.channel or 'N/A' }}</strong></td>
+            <td>{{ support.tool or '-' }}</td>
+            <td>{{ support.description or '-' }}</td>
+            <td>{% if support.url %}<a href="{{ support.url }}">{{ support.url }}</a>{% else %}-{% endif %}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  {% if datacontract.price %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Pricing</h2>
+      <p><strong>{{ datacontract.price.priceAmount }} {{ datacontract.price.priceCurrency }}</strong> per {{ datacontract.price.priceUnit }}</p>
     </ac:layout-cell>
   </ac:layout-section>
   {% endif %}
@@ -178,6 +193,34 @@
             <td>{{ member.dateIn or '-' }}</td>
             <td>{{ member.dateOut or '-' }}</td>
             <td>{{ member.comment or '-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
+  {% if datacontract.roles %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Access Roles</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Access</th>
+            <th>First Level Approver</th>
+            <th>Second Level Approver</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for role in datacontract.roles %}
+          <tr>
+            <td><strong>{{ role.role }}</strong></td>
+            <td>{{ role.access or '-' }}</td>
+            <td>{{ role.firstLevelApprovers or '-' }}</td>
+            <td>{{ role.secondLevelApprovers or '-' }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -216,6 +259,41 @@
   </ac:layout-section>
   {% endif %}
 
+  {% if datacontract.servers %}
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Servers</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Server</th>
+            <th>Type</th>
+            <th>Environment</th>
+            <th>Format</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for server in datacontract.servers %}
+          <tr>
+            <td><strong>{{ server.server or 'N/A' }}</strong></td>
+            <td>{{ server.type or 'N/A' }}</td>
+            <td>{{ server.environment or 'N/A' }}</td>
+            <td><code>{{ server.format or 'N/A' }}</code></td>
+            <td>
+              {% if server.location %}{{ server.location }}{% endif %}
+              {% if server.path %}<br/><strong>Path:</strong> <code>{{ server.path }}</code>{% endif %}
+              {% if server.host %}<br/><strong>Host:</strong> {{ server.host }}{% endif %}
+              {% if server.port %}<br/><strong>Port:</strong> {{ server.port }}{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </ac:layout-cell>
+  </ac:layout-section>
+  {% endif %}
+
   {% if datacontract.customProperties %}
   <ac:layout-section ac:type="single">
     <ac:layout-cell>
@@ -242,13 +320,7 @@
 
   <ac:layout-section ac:type="single">
     <ac:layout-cell>
-      <h2>Full Data Contract YAML</h2>
-      <ac:structured-macro ac:name="code">
-        <ac:parameter name="language">yaml</ac:parameter>
-        <ac:parameter name="collapse">true</ac:parameter>
-        <ac:plain-text-body><![CDATA[{{ datacontract_yaml }}]]></ac:plain-text-body>
-      </ac:structured-macro>
-      <p><small><em>Generated on {{ formatted_date }} by datacontract-cli {{ datacontract_cli_version }}</em></small></p>
+      <p><em>Generated on {{ formatted_date }} using datacontract-cli {{ datacontract_cli_version }}</em></p>
     </ac:layout-cell>
   </ac:layout-section>
 </ac:layout>
