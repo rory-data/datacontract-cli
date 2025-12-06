@@ -1,0 +1,172 @@
+dataContractSpecification: 1.2.1
+id: teradata
+info:
+  title: teradata
+  version: 0.0.1
+  owner: my-domain-team
+servers:
+  teradata:
+    type: teradata
+    host: localhost
+    port: __PORT__
+    database: DBC
+    schema: DBC
+models:
+  checks_testcase:
+    type: table
+    fields:
+      CTC_ID:
+        type: number
+        description: Primary key
+        primaryKey: true
+        config:
+          teradataType: DECIMAL
+      DESCRIPTION:
+        type: text
+        description: Decimal number
+        config:
+          teradataType: VARCHAR
+      AMOUNT:
+        type: number
+        description: Amount purchased
+        config:
+          teradataType: DECIMAL
+        quality:
+          - type: sql
+            description: There is a customer who bought a lot of items
+            query: SELECT {field} FROM {model} where {field} = 100
+            mustBeGreaterThan: 0
+      QUALITY:
+        type: number
+        description: Percentage of checks passed
+        config:
+          teradataType: DECIMAL
+      CUSTOM_ATTRIBUTES:
+        type: text
+        description: Custom attributes
+        config:
+          teradataType: CLOB
+      FIELD_VARCHAR:
+        type: string
+        description: Variable-length string
+        maxLength: 100
+        config:
+          teradataType: VARCHAR
+      FIELD_NVARCHAR:
+        type: string
+        description: Variable-length Unicode string
+        maxLength: 100
+        config:
+          teradataType: VARCHAR
+      FIELD_NUMBER:
+        type: decimal
+        description: Number
+        config:
+          teradataType: DECIMAL
+      FIELD_FLOAT:
+        type: float
+        description: Float
+        config:
+          teradataType: FLOAT
+      FIELD_DATE:
+        type: date
+        description: Date and Time down to day precision
+        config:
+          teradataType: DATE
+      FIELD_BINARY_FLOAT:
+        type: number
+        description: 32-bit floating point number
+        config:
+          teradataType: REAL
+      FIELD_BINARY_DOUBLE:
+        type: number
+        description: 64-bit floating point number
+        config:
+          teradataType: DOUBLE PRECISION
+      FIELD_TIMESTAMP:
+        type: timestamp_ntz
+        description: Timestamp with fractional second precision of 6, no timezones
+        config:
+          teradataType: TIMESTAMP(6)
+      FIELD_TIMESTAMP_TZ:
+        type: timestamp_tz
+        description: Timestamp with fractional second precision of 6, with timezones
+          (TZ)
+        config:
+          teradataType: TIMESTAMP(6) WITH TIME ZONE
+      FIELD_TIMESTAMP_LTZ:
+        type: timestamp_tz
+        description: Timestamp with fractional second precision of 6, with timezone
+          support
+        config:
+          teradataType: TIMESTAMP(6) WITH TIME ZONE
+      FIELD_INTERVAL_YEAR:
+        type: int
+        description: Interval of time in years and months with (2) precision
+        config:
+          teradataType: INTERVAL YEAR(2) TO MONTH
+      FIELD_INTERVAL_DAY:
+        type: int
+        description: Interval of time in days, hours, minutes and seconds with (2 / 6) precision
+        config:
+          teradataType: INTERVAL DAY(2) TO SECOND(6)
+      FIELD_RAW:
+        type: bytes
+        description: Large raw binary data
+        config:
+          teradataType: BYTE
+      FIELD_ROWID:
+        type: string
+        description: Base 64 string representing a unique row address
+        config:
+          teradataType: VARCHAR(18)
+      FIELD_UROWID:
+        type: string
+        description: Base 64 string representing the logical address
+        config:
+          teradataType: VARCHAR(18)
+      FIELD_CHAR:
+        type: string
+        description: Fixed-length string
+        maxLength: 10
+        config:
+          teradataType: CHAR(10)
+      FIELD_NCHAR:
+        type: string
+        description: Fixed-length Unicode string
+        maxLength: 10
+        config:
+          teradataType: CHAR(10)
+      FIELD_CLOB:
+        type: string
+        description: Character large object
+        config:
+          teradataType: CLOB
+      FIELD_NCLOB:
+        type: string
+        description: National character large object
+        config:
+          teradataType: CLOB
+      FIELD_BLOB:
+        type: bytes
+        description: Binary large object
+        config:
+          teradataType: BLOB
+      FIELD_BFILE:
+        type: bytes
+        description: Binary file
+        config:
+          teradataType: BLOB
+    quality:
+      - type: sql
+        description: Row Count
+        query: |
+          SELECT count(*) as row_count
+          FROM {model}
+        mustBeGreaterThan: 5
+      - type: sql
+        description: Quality must be high except in exceptional cases where junk spare parts are sold
+        query: |
+          SELECT ctc_id FROM CHECKS_TESTCASE ct
+          WHERE quality < 90
+          AND json_value(ct.CUSTOM_ATTRIBUTES, '$.quality') != 'junk'

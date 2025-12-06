@@ -2,6 +2,7 @@ import logging
 import os
 
 import sqlglot
+from open_data_contract_standard.model import OpenDataContractStandard
 from sqlglot.dialects.dialect import Dialects
 
 from datacontract.imports.importer import Importer
@@ -13,19 +14,19 @@ from datacontract.model.run import ResultEnum
 class SqlImporter(Importer):
     def import_source(
         self, data_contract_specification: DataContractSpecification, source: str, import_args: dict
-    ) -> DataContractSpecification:
+    ) -> DataContractSpecification | OpenDataContractStandard:
         return import_sql(data_contract_specification, self.import_format, source, import_args)
 
 
 def import_sql(
-    data_contract_specification: DataContractSpecification, format: str, source: str, import_args: dict = None
+    data_contract_specification: DataContractSpecification, format: str, source: str, import_args: dict | None = None
 ) -> DataContractSpecification:
     sql = read_file(source)
 
     dialect = to_dialect(import_args)
 
     try:
-        parsed = sqlglot.parse_one(sql=sql, read=dialect)
+        parsed = sqlglot.parse_one(sql=sql, read=dialect, error_level="ignore")
     except Exception as e:
         logging.error(f"Error parsing SQL: {str(e)}")
         raise DataContractException(
@@ -115,6 +116,7 @@ def to_physical_type_key(dialect: Dialects | str | None) -> str:
         Dialects.ORACLE: "oracleType",
         Dialects.MYSQL: "mysqlType",
         Dialects.DATABRICKS: "databricksType",
+        Dialects.TERADATA: "teradataType",
     }
     if isinstance(dialect, str):
         dialect = Dialects[dialect.upper()] if dialect.upper() in Dialects.__members__ else None
@@ -133,6 +135,7 @@ def to_server_type(source, dialect: Dialects | None) -> str | None:
         Dialects.ORACLE: "oracle",
         Dialects.MYSQL: "mysql",
         Dialects.DATABRICKS: "databricks",
+        Dialects.TERADATA: "teradata",
     }
     return dialect_map.get(dialect, None)
 
