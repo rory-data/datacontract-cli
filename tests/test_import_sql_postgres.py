@@ -25,6 +25,26 @@ def test_cli():
     assert result.exit_code == 0
 
 
+def test_cli_odcs():
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "import",
+            "--format",
+            "sql",
+            "--source",
+            sql_file_path,
+            "--spec",
+            "odcs",
+        ],
+    )
+    assert result.exit_code == 0
+    output = result.stdout
+    assert "apiVersion" in output
+    assert "kind: DataContract" in output
+
+
 def test_import_sql_postgres():
     result = DataContract.import_from_source("sql", sql_file_path, dialect="postgres")
 

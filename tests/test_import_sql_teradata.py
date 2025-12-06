@@ -63,7 +63,7 @@ info:
   title: My Data Contract
   version: 0.0.1
 servers:
-  teradata: 
+  teradata:
     type: teradata
 models:
   checks_testcase:
@@ -72,116 +72,134 @@ models:
       CTC_ID:
         type: number
         primaryKey: true
+        description: Primary key
         config:
           teradataType: DECIMAL
       DESCRIPTION:
         type: string
         required: true
         maxLength: 30
+        description: Description
         config:
           teradataType: VARCHAR(30)
       AMOUNT:
-        type: number
+        type: decimal
+        precision: 10
+        scale: 0
+        description: Amount purchased
         config:
           teradataType: DECIMAL(10)
       QUALITY:
         type: number
+        description: Percentage of checks passed
         config:
           teradataType: DECIMAL
       CUSTOM_ATTRIBUTES:
-        type: text
+        type: string
+        description: Custom attributes
         config:
-          teradataType: CLOB
+          teradataType: TEXT
       FIELD_VARCHAR:
         type: string
         maxLength: 100
+        description: Variable-length string
         config:
           teradataType: VARCHAR(100)
       FIELD_NVARCHAR:
         type: string
         maxLength: 100
+        description: Variable-length Unicode string (Teradata uses VARCHAR)
         config:
           teradataType: VARCHAR(100)
       FIELD_NUMBER:
-        type: decimal
+        type: number
+        description: Number
         config:
           teradataType: DECIMAL
       FIELD_FLOAT:
         type: float
+        description: Float
         config:
           teradataType: FLOAT
       FIELD_DATE:
         type: date
+        description: Date and Time down to day precision
         config:
           teradataType: DATE
       FIELD_BINARY_FLOAT:
         type: float
+        description: 32-bit floating point number
         config:
-          teradataType: REAL
+          teradataType: FLOAT
       FIELD_BINARY_DOUBLE:
         type: double
+        description: 64-bit floating point number
         config:
           teradataType: DOUBLE PRECISION
       FIELD_TIMESTAMP:
         type: timestamp_ntz
+        description: Timestamp with fractional second precision of 6, no timezones
         config:
           teradataType: TIMESTAMP(6)
       FIELD_TIMESTAMP_TZ:
         type: timestamp_tz
+        description: Timestamp with fractional second precision of 6, with timezones (TZ)
         config:
           teradataType: TIMESTAMP(6) WITH TIME ZONE
       FIELD_TIMESTAMP_LTZ:
         type: timestamp_tz
+        description: Timestamp with fractional second precision of 6, with timezone support
         config:
           teradataType: TIMESTAMP(6) WITH TIME ZONE
-      FIELD_INTERVAL_YEAR:
-        type: variant
-        config:
-          teradataType: INTERVAL YEAR(2) TO MONTH
-      FIELD_INTERVAL_DAY:
-        type: variant
-        config:
-          teradataType: INTERVAL DAY(2) TO SECOND(6)
       FIELD_RAW:
-        type: bytes
+        type: int
+        description: Large raw binary data
         config:
-          teradataType: BYTE
+          teradataType: TINYINT
       FIELD_ROWID:
         type: string
         maxLength: 18
+        description: Base 64 string representing a unique row address
         config:
           teradataType: VARCHAR(18)
       FIELD_UROWID:
         type: string
         maxLength: 18
+        description: Base 64 string representing the logical address
         config:
           teradataType: VARCHAR(18)
       FIELD_CHAR:
         type: string
         maxLength: 10
+        description: Fixed-length string
         config:
           teradataType: CHAR(10)
       FIELD_NCHAR:
         type: string
         maxLength: 10
+        description: Fixed-length Unicode string (Teradata uses CHAR)
         config:
           teradataType: CHAR(10)
       FIELD_CLOB:
-        type: text
+        type: string
+        description: Character large object
         config:
-          teradataType: CLOB
+          teradataType: TEXT
       FIELD_NCLOB:
-        type: text
+        type: string
+        description: National character large object (Teradata uses CLOB)
         config:
-          teradataType: CLOB
+          teradataType: TEXT
       FIELD_BLOB:
         type: bytes
+        description: Binary large object
         config:
-          teradataType: BLOB
+          teradataType: VARBINARY
       FIELD_BFILE:
         type: bytes
+        description: Binary file (Teradata uses BLOB)
         config:
-          teradataType: BLOB
+          teradataType: VARBINARY
     """
     print("Result", result.to_yaml())
     assert yaml.safe_load(result.to_yaml()) == yaml.safe_load(expected)

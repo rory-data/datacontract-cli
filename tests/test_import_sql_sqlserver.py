@@ -1,8 +1,49 @@
 import yaml
+from typer.testing import CliRunner
 
+from datacontract.cli import app
 from datacontract.data_contract import DataContract
 
 sql_file_path = "fixtures/sqlserver/import/ddl.sql"
+
+
+def test_cli():
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "import",
+            "--format",
+            "sql",
+            "--source",
+            sql_file_path,
+            "--dialect",
+            "sqlserver",
+        ],
+    )
+    assert result.exit_code == 0
+
+
+def test_cli_odcs():
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "import",
+            "--format",
+            "sql",
+            "--source",
+            sql_file_path,
+            "--dialect",
+            "sqlserver",
+            "--spec",
+            "odcs",
+        ],
+    )
+    assert result.exit_code == 0
+    output = result.stdout
+    assert "apiVersion" in output
+    assert "kind: DataContract" in output
 
 
 def test_import_sql_sqlserver():
