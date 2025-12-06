@@ -1,0 +1,513 @@
+<ac:layout>
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h1>Data Contract: 53581432-6c55-4ba2-a65f-72344a91553a</h1>
+      <ac:structured-macro ac:name="panel">
+        <ac:parameter ac:name="bgColor">#F5F5F5</ac:parameter>
+        <ac:rich-text-body>
+          <h3>Fundamentals</h3>
+          <table>
+            <tbody>
+              
+              
+              <tr>
+                <th>ID</th>
+                <td><code>53581432-6c55-4ba2-a65f-72344a91553a</code></td>
+              </tr>
+              
+              
+              <tr>
+                <th>Version</th>
+                <td>1.1.0</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Status</th>
+                <td>current</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Data Product</th>
+                <td>my quantum</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Tenant</th>
+                <td>ClimateQuantumInc</td>
+              </tr>
+              
+              
+              
+              <tr>
+                <th>Purpose</th>
+                <td>Views built on top of the seller tables.</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Usage</th>
+                <td>Predict sales over time</td>
+              </tr>
+              
+              
+              <tr>
+                <th>Limitations</th>
+                <td>Data based on seller perspective, no buyer information</td>
+              </tr>
+              
+              
+              
+              <tr>
+                <th>Tags</th>
+                <td><code>transactions</code></td>
+              </tr>
+              
+              
+              <tr>
+                <th>Contract Created</th>
+                <td>2022-11-15T02:59:43+00:00</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </ac:rich-text-body>
+      </ac:structured-macro>
+    </ac:layout-cell>
+  </ac:layout-section>
+
+  
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Schema</h2>
+      
+      <ac:structured-macro ac:name="panel">
+        <ac:parameter ac:name="bgColor">#F5F5F5</ac:parameter>
+        <ac:rich-text-body>
+          <h3>tbl (<code>tbl_1</code>)</h3>
+          
+          <p>Provides core payment metrics</p>
+          
+          
+          <p><strong>Type:</strong> <code>table</code></p>
+          
+          
+          <p><strong>Granularity:</strong> Aggregation on columns txn_ref_dt, pmt_txn_id</p>
+          
+
+          
+          <h4>Properties</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>Property</th>
+                <th>Business Name</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td><strong>txn_ref_dt</strong></td>
+                <td>transaction reference date</td>
+                <td><code>date</code></td>
+                <td>No</td>
+                <td>Reference date for transaction</td>
+              </tr>
+              
+              <tr>
+                <td><strong>rcvr_id</strong></td>
+                <td>receiver id</td>
+                <td><code>varchar(18)</code></td>
+                <td>No</td>
+                <td>A description for column rcvr_id.</td>
+              </tr>
+              
+              <tr>
+                <td><strong>rcvr_cntry_code</strong></td>
+                <td>receiver country code</td>
+                <td><code>varchar(2)</code></td>
+                <td>No</td>
+                <td>Country code</td>
+              </tr>
+              
+              <tr>
+                <td><strong>array_of_array</strong></td>
+                <td>-</td>
+                <td><code>array</code></td>
+                <td>No</td>
+                <td></td>
+              </tr>
+              
+            </tbody>
+          </table>
+          
+
+          
+          <h4>Quality Rules</h4>
+          
+          <p>
+            <strong>Rule:</strong> rowCount
+             - Ensure row count is within expected volume range
+            <br /><em>Dimension: completeness</em>
+          </p>
+          
+          
+        </ac:rich-text-body>
+      </ac:structured-macro>
+      
+    </ac:layout-cell>
+  </ac:layout-section>
+  
+
+  
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Support</h2>
+      <ac:structured-macro ac:name="panel">
+        <ac:parameter ac:name="bgColor">#F5F5F5</ac:parameter>
+        <ac:rich-text-body>
+          <table>
+            <thead>
+              <tr>
+                <th>Channel</th>
+                <th>Tool</th>
+                <th>Description</th>
+                <th>URL</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td><strong>#product-help</strong></td>
+                <td>slack</td>
+                <td>-</td>
+                <td><a href="https://aidaug.slack.com/archives/C05UZRSBKLY">https://aidaug.slack.com/archives/C05UZRSBKLY</a></td>
+              </tr>
+              
+              <tr>
+                <td><strong>datacontract-ann</strong></td>
+                <td>email</td>
+                <td>-</td>
+                <td><a href="mailto:datacontract-ann@bitol.io">mailto:datacontract-ann@bitol.io</a></td>
+              </tr>
+              
+              <tr>
+                <td><strong>Feedback</strong></td>
+                <td>-</td>
+                <td>General Product Feedback (Public)</td>
+                <td><a href="https://product-feedback.com">https://product-feedback.com</a></td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </ac:rich-text-body>
+      </ac:structured-macro>
+    </ac:layout-cell>
+  </ac:layout-section>
+  
+
+  
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Pricing</h2>
+      <ac:structured-macro ac:name="panel">
+        <ac:parameter ac:name="bgColor">#F5F5F5</ac:parameter>
+        <ac:rich-text-body>
+          <p><strong>9.95 USD</strong> per megabyte</p>
+        </ac:rich-text-body>
+      </ac:structured-macro>
+    </ac:layout-cell>
+  </ac:layout-section>
+  
+
+  
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Team</h2>
+      <ac:structured-macro ac:name="panel">
+        <ac:parameter ac:name="bgColor">#F5F5F5</ac:parameter>
+        <ac:rich-text-body>
+          <table>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Date In</th>
+                <th>Date Out</th>
+                <th>Comment</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td>ceastwood</td>
+                <td>Data Scientist</td>
+                <td>2022-08-02</td>
+                <td>2022-10-01</td>
+                <td>-</td>
+              </tr>
+              
+              <tr>
+                <td>mhopper</td>
+                <td>Data Scientist</td>
+                <td>2022-10-01</td>
+                <td>-</td>
+                <td>-</td>
+              </tr>
+              
+              <tr>
+                <td>daustin</td>
+                <td>Owner</td>
+                <td>2022-10-01</td>
+                <td>-</td>
+                <td>-</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </ac:rich-text-body>
+      </ac:structured-macro>
+    </ac:layout-cell>
+  </ac:layout-section>
+  
+
+  
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Access Roles</h2>
+      <ac:structured-macro ac:name="panel">
+        <ac:parameter ac:name="bgColor">#F5F5F5</ac:parameter>
+        <ac:rich-text-body>
+          <table>
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Access</th>
+                <th>First Level Approver</th>
+                <th>Second Level Approver</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td><strong>microstrategy_user_opr</strong></td>
+                <td>read</td>
+                <td>Reporting Manager</td>
+                <td>mandolorian</td>
+              </tr>
+              
+              <tr>
+                <td><strong>bq_queryman_user_opr</strong></td>
+                <td>read</td>
+                <td>Reporting Manager</td>
+                <td>na</td>
+              </tr>
+              
+              <tr>
+                <td><strong>risk_data_access_opr</strong></td>
+                <td>read</td>
+                <td>Reporting Manager</td>
+                <td>dathvador</td>
+              </tr>
+              
+              <tr>
+                <td><strong>bq_unica_user_opr</strong></td>
+                <td>write</td>
+                <td>Reporting Manager</td>
+                <td>mickey</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </ac:rich-text-body>
+      </ac:structured-macro>
+    </ac:layout-cell>
+  </ac:layout-section>
+  
+
+  
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Service Level Agreements</h2>
+      <ac:structured-macro ac:name="panel">
+        <ac:parameter ac:name="bgColor">#F5F5F5</ac:parameter>
+        <ac:rich-text-body>
+          <table>
+            <thead>
+              <tr>
+                <th>Property</th>
+                <th>Value</th>
+                <th>Unit</th>
+                <th>Element</th>
+                <th>Driver</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td>latency</td>
+                <td>4</td>
+                <td>d</td>
+                <td>tab1.txn_ref_dt</td>
+                <td>-</td>
+              </tr>
+              
+              <tr>
+                <td>generalAvailability</td>
+                <td>2022-05-12T09:30:10-08:00</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+              </tr>
+              
+              <tr>
+                <td>endOfSupport</td>
+                <td>2032-05-12T09:30:10-08:00</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+              </tr>
+              
+              <tr>
+                <td>endOfLife</td>
+                <td>2042-05-12T09:30:10-08:00</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+              </tr>
+              
+              <tr>
+                <td>retention</td>
+                <td>3</td>
+                <td>y</td>
+                <td>tab1.txn_ref_dt</td>
+                <td>-</td>
+              </tr>
+              
+              <tr>
+                <td>frequency</td>
+                <td>1</td>
+                <td>d</td>
+                <td>tab1.txn_ref_dt</td>
+                <td>-</td>
+              </tr>
+              
+              <tr>
+                <td>timeOfAvailability</td>
+                <td>09:00-08:00</td>
+                <td>-</td>
+                <td>tab1.txn_ref_dt</td>
+                <td>regulatory</td>
+              </tr>
+              
+              <tr>
+                <td>timeOfAvailability</td>
+                <td>08:00-08:00</td>
+                <td>-</td>
+                <td>tab1.txn_ref_dt</td>
+                <td>analytics</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </ac:rich-text-body>
+      </ac:structured-macro>
+    </ac:layout-cell>
+  </ac:layout-section>
+  
+
+  
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Servers</h2>
+      <ac:structured-macro ac:name="panel">
+        <ac:parameter ac:name="bgColor">#F5F5F5</ac:parameter>
+        <ac:rich-text-body>
+          <table>
+            <thead>
+              <tr>
+                <th>Server</th>
+                <th>Type</th>
+                <th>Environment</th>
+                <th>Format</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td><strong>my-postgres</strong></td>
+                <td>postgres</td>
+                <td>N/A</td>
+                <td><code>N/A</code></td>
+                <td>
+                  
+                  
+                  <br/><strong>Host:</strong> localhost
+                  <br/><strong>Port:</strong> 5432
+                </td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </ac:rich-text-body>
+      </ac:structured-macro>
+    </ac:layout-cell>
+  </ac:layout-section>
+  
+
+  
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <h2>Custom Properties</h2>
+      <ac:structured-macro ac:name="panel">
+        <ac:parameter ac:name="bgColor">#F5F5F5</ac:parameter>
+        <ac:rich-text-body>
+          <table>
+            <thead>
+              <tr>
+                <th>Property</th>
+                <th>Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+              <tr>
+                <td><strong>owner</strong></td>
+                <td>seller</td>
+              </tr>
+              
+              <tr>
+                <td><strong>refRulesetName</strong></td>
+                <td>gcsc.ruleset.name</td>
+              </tr>
+              
+              <tr>
+                <td><strong>somePropertyName</strong></td>
+                <td>property.value</td>
+              </tr>
+              
+              <tr>
+                <td><strong>dataprocClusterName</strong></td>
+                <td>['cluster name']</td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </ac:rich-text-body>
+      </ac:structured-macro>
+    </ac:layout-cell>
+  </ac:layout-section>
+  
+
+  <ac:layout-section ac:type="single">
+    <ac:layout-cell>
+      <p><em>Generated on 08 Nov 2025 04:32:06 UTC using datacontract-cli 0.10.37</em></p>
+    </ac:layout-cell>
+  </ac:layout-section>
+</ac:layout>

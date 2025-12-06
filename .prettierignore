@@ -1,0 +1,3 @@
+# Fixture files should not be auto-formatted
+tests/fixtures/**/*.confluence.html
+tests/fixtures/**/*.html
