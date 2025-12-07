@@ -226,6 +226,7 @@ models:
       id:
         type: number
         required: true
+        primaryKey: true
         config:
           teradataType: DECIMAL
       created_by:

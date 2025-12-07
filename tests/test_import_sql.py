@@ -452,9 +452,10 @@ class TestGetDescription:
     def test_get_description_with_comment(self):
         """Test extraction of column description from comment."""
         sql = "CREATE TABLE t (id INT COMMENT 'Primary key')"
-        parsed = sqlglot.parse_one(sql, read="postgres")
-        # Note: Different dialects handle comments differently
-        # This test verifies the function can handle description extraction
+        parsed = sqlglot.parse_one(sql, read="mysql")
+        column = list(parsed.find_all(sqlglot.exp.ColumnDef))[0]
+        result = get_description(column)
+        assert result == "Primary key"
 
     def test_get_description_without_comment(self):
         """Test column without comment."""
@@ -509,7 +510,7 @@ class TestGetMaxLength:
         parsed = sqlglot.parse_one(sql, read="postgres")
         column = list(parsed.find_all(sqlglot.exp.ColumnDef))[0]
         result = get_max_length(column)
-        # Result depends on how sqlglot handles unparameterized varchar
+        assert result is None
 
 
 class TestGetPrecisionScale:
@@ -539,7 +540,8 @@ class TestGetPrecisionScale:
         parsed = sqlglot.parse_one(sql, read="postgres")
         column = list(parsed.find_all(sqlglot.exp.ColumnDef))[0]
         precision, scale = get_precision_scale(column)
-        # Behavior depends on sqlglot parsing, may return (10, 0) or (None, None)
+        assert precision == 10
+        assert scale == 0
 
     def test_get_precision_scale_int(self):
         """Test that precision/scale is None for non-numeric types."""

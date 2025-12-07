@@ -102,7 +102,7 @@ models:
       id:
         type: decimal
         required: true
-        # primaryKey: true
+        primaryKey: true
         config:
           postgresType: DECIMAL
       created_by:

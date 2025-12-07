@@ -368,7 +368,7 @@ def _extract_fields_from_columns(table_name: str, parsed, dialect: Dialects | No
     return fields
 
 
-def get_primary_key(column) -> bool | None:
+def get_primary_key(column: sqlglot.expressions.ColumnDef) -> bool | None:
     """Determine if the column is a primary key.
 
     Args:
@@ -381,6 +381,14 @@ def get_primary_key(column) -> bool | None:
         return True
     if column.find(sqlglot.exp.PrimaryKey) is not None:
         return True
+
+    # Check table-level constraints
+    if column.parent:
+        for pk in column.parent.find_all(sqlglot.exp.PrimaryKey):
+            for expr in pk.expressions:
+                if expr.name == column.this.name:
+                    return True
+
     return None
 
 
@@ -506,6 +514,10 @@ def get_description(column: sqlglot.expressions.ColumnDef) -> str | None:
     Returns:
         str | None: The description if available, otherwise None.
     """
+    for constraint in column.args.get("constraints", []):
+        if isinstance(constraint.kind, sqlglot.exp.CommentColumnConstraint):
+            return constraint.kind.this.name
+
     if column.comments is None:
         return None
     return " ".join(comment.strip() for comment in column.comments)
