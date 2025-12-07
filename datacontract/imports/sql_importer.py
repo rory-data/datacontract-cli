@@ -29,6 +29,67 @@ from datacontract.model.run import ResultEnum
 logger = logging.getLogger(__name__)
 
 
+# Constants
+TERADATA_INTERVAL_PATTERN = (
+    r"^[ \t]*\w+[ \t]+INTERVAL[ \t]+(?:YEAR|DAY)(?:[ \t]*\([^)]*\))?[ \t]+TO[ \t]+"
+    r"(?:MONTH|SECOND)(?:[ \t]*\([^)]*\))?[ \t]*,?[ \t]*(?:--[^\n]*)?\n?"
+)
+
+EXACT_TYPE_MAP = {
+    "date": "date",
+    "time": "string",
+    "datetimeoffset": "timestamp_tz",
+    "uniqueidentifier": "string",  # SQL Server
+    "json": "string",
+    "xml": "string",
+    "clob": "text",
+    "nclob": "text",
+    "blob": "bytes",
+    "bfile": "bytes",
+    "byte": "bytes",  # Teradata
+    "real": "float",  # Teradata 32-bit float
+    "number": "number",
+}
+
+# IMPORTANT: Order matters! Longer prefixes must come before shorter ones.
+PREFIX_TYPE_MAP = [
+    ("bigint", "long"),
+    ("tinyint", "int"),
+    ("smallint", "int"),
+    ("integer", "int"),
+    ("int", "int"),
+    ("nvarchar", "string"),
+    ("varchar", "string"),
+    ("nchar", "string"),
+    ("ntext", "string"),
+    ("char", "string"),
+    ("text", "string"),
+    ("string", "string"),
+    ("varbinary", "bytes"),
+    ("binary", "bytes"),
+    ("raw", "bytes"),
+    ("double", "double"),
+    ("float", "float"),
+    ("numeric", "decimal"),
+    ("decimal", "decimal"),  # DECIMAL with parameters -> decimal type
+    ("bool", "boolean"),
+    ("bit", "boolean"),
+    ("timestamp", "timestamp"),  # Handle with special logic
+]
+
+DIALECT_CONFIG = {
+    Dialects.TSQL: {"server": "sqlserver", "physical_type": "sqlserverType"},
+    Dialects.POSTGRES: {"server": "postgres", "physical_type": "postgresType"},
+    Dialects.BIGQUERY: {"server": "bigquery", "physical_type": "bigqueryType"},
+    Dialects.SNOWFLAKE: {"server": "snowflake", "physical_type": "snowflakeType"},
+    Dialects.REDSHIFT: {"server": "redshift", "physical_type": "redshiftType"},
+    Dialects.ORACLE: {"server": "oracle", "physical_type": "oracleType"},
+    Dialects.MYSQL: {"server": "mysql", "physical_type": "mysqlType"},
+    Dialects.DATABRICKS: {"server": "databricks", "physical_type": "databricksType"},
+    Dialects.TERADATA: {"server": "teradata", "physical_type": "teradataType"},
+}
+
+
 @dataclass
 class ColumnMetadata:
     """Shared column metadata extracted from SQL column definitions.
@@ -46,61 +107,6 @@ class ColumnMetadata:
     scale: int | None
     is_primary_key: bool | None
     is_required: bool
-
-
-def _preprocess_teradata_sql(sql: str) -> str:
-    """Pre-process Teradata SQL to handle INTERVAL types that sqlglot cannot parse.
-
-    Teradata INTERVAL types (INTERVAL YEAR TO MONTH, INTERVAL DAY TO SECOND) are not
-    fully supported by sqlglot. This function removes INTERVAL column definitions
-    from the SQL to allow parsing of other columns.
-
-    Args:
-        sql: The raw SQL string.
-
-    Returns:
-        SQL string with INTERVAL column definitions removed.
-
-    Note:
-        This is a workaround for sqlglot limitations. INTERVAL columns will not
-        appear in the resulting data contract. A warning is logged when columns
-        are removed.
-    """
-    # Pattern matches full INTERVAL column lines including:
-    # - Optional leading whitespace (spaces/tabs only, not newlines)
-    # - Column name (word characters)
-    # - INTERVAL YEAR(...) TO MONTH or INTERVAL DAY(...) TO SECOND(...)
-    # - Optional comma
-    # - Optional spaces/tabs (not newlines) and comment to end of line
-    # - Optional single newline at end
-    interval_pattern = (
-        r"^[ \t]*\w+[ \t]+INTERVAL[ \t]+(?:YEAR|DAY)[ \t]*\([^)]*\)[ \t]+TO[ \t]+"
-        r"(?:MONTH|SECOND)(?:[ \t]*\([^)]*\))?[ \t]*,?[ \t]*(?:--[^\n]*)?\n?"
-    )
-
-    # Check if any INTERVAL columns exist before modifying
-    if re.search(interval_pattern, sql, flags=re.MULTILINE | re.IGNORECASE):
-        logger.warning(
-            "Teradata INTERVAL column definitions detected and will be skipped. "
-            "These columns are not supported by the SQL parser."
-        )
-
-    # Remove INTERVAL column definitions (entire lines)
-    processed_sql = re.sub(
-        interval_pattern,
-        "",
-        sql,
-        flags=re.MULTILINE | re.IGNORECASE,
-    )
-
-    # Clean up any double commas that might result from removal
-    processed_sql = re.sub(r",\s*,", ",", processed_sql)
-    # Clean up trailing comma before closing parenthesis
-    processed_sql = re.sub(r",\s*\)", ")", processed_sql)
-    # Clean up comma followed by newline then closing paren
-    processed_sql = re.sub(r",\s*\n\s*\)", ")", processed_sql)
-
-    return processed_sql
 
 
 def _extract_column_metadata(
@@ -190,7 +196,7 @@ def import_sql(
             result=ResultEnum.error,
         ) from e
 
-    tables = parsed.find_all(sqlglot.expressions.Table)
+    tables = list(parsed.find_all(sqlglot.expressions.Table))
 
     if isinstance(data_contract_specification, DataContractSpecification):
         _populate_dcs_from_sql(data_contract_specification, tables, dialect, source, parsed)
@@ -200,18 +206,97 @@ def import_sql(
     return data_contract_specification
 
 
+def _extract_table_metadata(
+    create_expression: sqlglot.expressions.Create,
+    dialect: Dialects | None,
+) -> tuple[str, list[ColumnMetadata]]:
+    """Extract table name and column metadata from a CREATE TABLE expression.
+
+    Args:
+        create_expression: The CREATE TABLE expression.
+        dialect: The SQL dialect.
+
+    Returns:
+        Tuple of (table_name, list[ColumnMetadata]).
+    """
+    schema = create_expression.this
+    if not isinstance(schema, sqlglot.exp.Schema):
+        # Should not happen if filtered by kind="TABLE" and valid SQL, but safe fallback
+        return "", []
+
+    table_name = schema.this.name.lower()
+    columns = []
+
+    for expression in schema.expressions:
+        if isinstance(expression, sqlglot.exp.ColumnDef):
+            columns.append(_extract_column_metadata(expression, dialect))
+
+    return table_name, columns
+
+
+def _create_field(metadata: ColumnMetadata, dialect: Dialects | None) -> Field:
+    """Create a Field object from column metadata.
+
+    Args:
+        metadata: The column metadata.
+        dialect: The SQL dialect.
+
+    Returns:
+        Field object.
+    """
+    field = Field()
+    field.type = metadata.logical_type
+    field.description = metadata.description
+    field.maxLength = metadata.max_length
+    field.precision = metadata.precision
+    field.scale = metadata.scale
+    field.primaryKey = metadata.is_primary_key
+    if metadata.is_required:
+        field.required = True
+
+    physical_type_key = to_physical_type_key(dialect)
+    field.config = {
+        physical_type_key: metadata.physical_type,
+    }
+    return field
+
+
+def _create_schema_property(metadata: ColumnMetadata) -> SchemaProperty:
+    """Create a SchemaProperty object from column metadata.
+
+    Args:
+        metadata: The column metadata.
+
+    Returns:
+        SchemaProperty object.
+    """
+    prop = SchemaProperty(name=metadata.name)
+    prop.logicalType = metadata.logical_type
+    prop.physicalType = metadata.physical_type
+    if metadata.description:
+        prop.description = metadata.description
+    if metadata.is_primary_key:
+        prop.primaryKey = True
+    if metadata.is_required:
+        prop.required = True
+
+    # Build logicalTypeOptions for additional constraints
+    _populate_logical_type_options_from_metadata(prop, metadata)
+    return prop
+
+
 def _populate_dcs_from_sql(
     data_contract_specification: DataContractSpecification,
-    tables,
+    tables: list[sqlglot.expressions.Table],
     dialect: Dialects | None,
     source: str,
-    parsed,
+    parsed: sqlglot.expressions.Expression,
 ) -> None:
     """Populate a DataContractSpecification with SQL table and column information.
 
     Args:
         data_contract_specification: The DCS to populate.
-        tables: Iterable of sqlglot Table expressions.
+        tables: Unused (kept for signature compatibility).
         dialect: The SQL dialect.
         source: Source file path (for server type detection).
         parsed: The parsed sqlglot statement.
@@ -225,27 +310,35 @@ def _populate_dcs_from_sql(
     if data_contract_specification.models is None:  # type: ignore[attr-defined]
         data_contract_specification.models = {}  # type: ignore[attr-defined]
 
-    for table in tables:
-        table_name = table.this.name.lower()
-        fields = _extract_fields_from_columns(table_name, parsed, dialect)
-        data_contract_specification.models[table_name] = Model(  # type: ignore[index]
-            type="table",
-            fields=fields,
-        )
+    # Extract the first CREATE TABLE statement
+    create = next((c for c in parsed.find_all(sqlglot.exp.Create) if c.kind == "TABLE"), None)
+    if not create:
+        return
+
+    table_name, columns = _extract_table_metadata(create, dialect)
+    if not table_name:
+        return
+
+    fields = {metadata.name: _create_field(metadata, dialect) for metadata in columns}
+
+    data_contract_specification.models[table_name] = Model(  # type: ignore[index]
+        type="table",
+        fields=fields,
+    )
 
 
 def _populate_odcs_from_sql(
     data_contract_specification: OpenDataContractStandard,
-    tables,
+    tables: list[sqlglot.expressions.Table],
     dialect: Dialects | None,
     source: str,
-    parsed,
+    parsed: sqlglot.expressions.Expression,
 ) -> None:
     """Populate an OpenDataContractStandard with SQL table and column information.
 
     Args:
         data_contract_specification: The ODCS to populate.
-        tables: Iterable of sqlglot Table expressions.
+        tables: Unused (kept for signature compatibility).
         dialect: The SQL dialect.
         source: Source file path (for server type detection).
         parsed: The parsed sqlglot statement.
@@ -261,50 +354,18 @@ def _populate_odcs_from_sql(
     if data_contract_specification.schema_ is None:
         data_contract_specification.schema_ = []
 
-    for table in tables:
-        table_name = table.this.name.lower()
-        properties = _extract_properties_from_columns(table_name, parsed, dialect)
-        schema_obj = SchemaObject(name=table_name, properties=properties)
-        data_contract_specification.schema_.append(schema_obj)
+    # Extract the first CREATE TABLE statement
+    create = next((c for c in parsed.find_all(sqlglot.exp.Create) if c.kind == "TABLE"), None)
+    if not create:
+        return
 
+    table_name, columns = _extract_table_metadata(create, dialect)
+    if not table_name:
+        return
 
-def _extract_properties_from_columns(table_name: str, parsed, dialect: Dialects | None) -> list[SchemaProperty]:
-    """Extract SchemaProperty definitions from SQL table columns for ODCS.
-
-    Args:
-        table_name: The name of the table to extract properties for (lowercase).
-        parsed: The parsed sqlglot statement.
-        dialect: The SQL dialect.
-
-    Returns:
-        List of SchemaProperty objects.
-    """
-    properties = []
-
-    for column in parsed.find_all(sqlglot.exp.ColumnDef):
-        if column.parent is None or column.parent.this is None:
-            continue
-        if column.parent.this.name.lower() != table_name:
-            continue
-
-        metadata = _extract_column_metadata(column, dialect)
-
-        prop = SchemaProperty(name=metadata.name)
-        prop.logicalType = metadata.logical_type
-        prop.physicalType = metadata.physical_type
-        if metadata.description:
-            prop.description = metadata.description
-        if metadata.is_primary_key:
-            prop.primaryKey = True
-        if metadata.is_required:
-            prop.required = True
-
-        # Build logicalTypeOptions for additional constraints
-        _populate_logical_type_options_from_metadata(prop, metadata)
-
-        properties.append(prop)
-
-    return properties
+    properties = [_create_schema_property(metadata) for metadata in columns]
+    schema_obj = SchemaObject(name=table_name, properties=properties)
+    data_contract_specification.schema_.append(schema_obj)
 
 
 def _populate_logical_type_options_from_metadata(prop: SchemaProperty, metadata: ColumnMetadata) -> None:
@@ -314,68 +375,25 @@ def _populate_logical_type_options_from_metadata(prop: SchemaProperty, metadata:
         prop: The SchemaProperty to populate.
         metadata: The extracted column metadata.
     """
-    logical_type_options = {}
-
-    if metadata.max_length is not None:
-        logical_type_options["maxLength"] = metadata.max_length
-    if metadata.precision is not None:
-        logical_type_options["precision"] = metadata.precision
-    if metadata.scale is not None:
-        logical_type_options["scale"] = metadata.scale
+    options = {
+        "maxLength": metadata.max_length,
+        "precision": metadata.precision,
+        "scale": metadata.scale,
+    }
+    logical_type_options = {k: v for k, v in options.items() if v is not None}
 
     if logical_type_options:
         prop.logicalTypeOptions = logical_type_options
-
-
-def _extract_fields_from_columns(table_name: str, parsed, dialect: Dialects | None) -> dict[str, Field]:
-    """Extract field definitions from SQL table columns.
-
-    Args:
-        table_name: The name of the table to extract fields for (lowercase).
-        parsed: The parsed sqlglot statement.
-        dialect: The SQL dialect.
-
-    Returns:
-        Dictionary of field name to Field object.
-    """
-    fields = {}
-
-    for column in parsed.find_all(sqlglot.exp.ColumnDef):
-        if column.parent is None or column.parent.this is None:
-            continue
-        if column.parent.this.name.lower() != table_name:
-            continue
-
-        metadata = _extract_column_metadata(column, dialect)
-
-        field = Field()
-        field.type = metadata.logical_type
-        field.description = metadata.description
-        field.maxLength = metadata.max_length
-        field.precision = metadata.precision
-        field.scale = metadata.scale
-        field.primaryKey = metadata.is_primary_key
-        if metadata.is_required:
-            field.required = True
-
-        physical_type_key = to_physical_type_key(dialect)
-        field.config = {
-            physical_type_key: metadata.physical_type,
-        }
-
-        fields[metadata.name] = field
-
-    return fields
 
 
 def get_primary_key(column: sqlglot.expressions.ColumnDef) -> bool | None:
     """Determine if the column is a primary key.
 
     Args:
-        column (sqlglot.expressions.ColumnDef): The column definition.
+        column: The column definition.
 
     Returns:
-        bool | None: True if primary key, False if not, None if unknown.
+        True if primary key, None otherwise.
     """
     if column.find(sqlglot.exp.PrimaryKeyColumnConstraint) is not None:
         return True
@@ -396,10 +414,10 @@ def to_dialect(import_args: dict[str, str] | None) -> Dialects | None:
     """Convert import args to sqlglot Dialects enum value.
 
     Args:
-        import_args (dict[str, str] | None): Import arguments containing dialect information.
+        import_args: Import arguments containing dialect information.
 
     Returns:
-        Dialects | None: Corresponding Dialects enum value or None if not found.
+        Corresponding Dialects enum value or None if not found.
     """
     if not import_args or (dialect := import_args.get("dialect")) is None:
         return None
@@ -426,48 +444,47 @@ def to_physical_type_key(dialect: Dialects | str | None) -> str:
     Returns:
         str: The corresponding physical type key.
     """
-    dialect_map = {
-        Dialects.TSQL: "sqlserverType",
-        Dialects.POSTGRES: "postgresType",
-        Dialects.BIGQUERY: "bigqueryType",
-        Dialects.SNOWFLAKE: "snowflakeType",
-        Dialects.REDSHIFT: "redshiftType",
-        Dialects.ORACLE: "oracleType",
-        Dialects.MYSQL: "mysqlType",
-        Dialects.DATABRICKS: "databricksType",
-        Dialects.TERADATA: "teradataType",
-    }
     if isinstance(dialect, str):
         dialect = Dialects[dialect.upper()] if dialect.upper() in Dialects.__members__ else None
+
     if dialect is None:
         return "physicalType"
-    return dialect_map.get(dialect, "physicalType")
+
+    config = DIALECT_CONFIG.get(dialect)
+    return config["physical_type"] if config else "physicalType"
 
 
-def to_server_type(source, dialect: Dialects | None) -> str | None:
+def to_server_type(source: str, dialect: Dialects | None) -> str | None:
     """Get the server type based on the SQL dialect.
 
     Args:
-        source (str): The source file path.
-        dialect (Dialects | None): The SQL dialect.
+        source: The source file path.
+        dialect: The SQL dialect.
 
     Returns:
-        str | None: The corresponding server type or None if not found.
+        The corresponding server type or None if not found.
     """
     if dialect is None:
         return None
-    dialect_map = {
-        Dialects.TSQL: "sqlserver",
-        Dialects.POSTGRES: "postgres",
-        Dialects.BIGQUERY: "bigquery",
-        Dialects.SNOWFLAKE: "snowflake",
-        Dialects.REDSHIFT: "redshift",
-        Dialects.ORACLE: "oracle",
-        Dialects.MYSQL: "mysql",
-        Dialects.DATABRICKS: "databricks",
-        Dialects.TERADATA: "teradata",
-    }
-    return dialect_map.get(dialect)
+
+    config = DIALECT_CONFIG.get(dialect)
+    return config["server"] if config else None
+
+
+def _get_col_kind(column: ColumnDef) -> sqlglot.expressions.Expression | None:
+    """Get the column type kind expression.
+
+    Args:
+        column: A sqlglot ColumnDef expression.
+
+    Returns:
+        The type kind expression or None if unavailable.
+    """
+    col_type_kind = column.args.get("kind")
+    if col_type_kind is None:
+        logger.warning("Column %s has no type information", getattr(column, "name", "unknown"))
+        return None
+    return col_type_kind
 
 
 def to_col_type(column: ColumnDef, dialect: Dialects | None) -> str | None:
@@ -480,15 +497,14 @@ def to_col_type(column: ColumnDef, dialect: Dialects | None) -> str | None:
     Returns:
         SQL type string formatted for the dialect, or None if unavailable.
     """
-    col_type_kind = column.args.get("kind")
+    col_type_kind = _get_col_kind(column)
     if col_type_kind is None:
-        logger.warning("Column %s has no type information", column.name)
         return None
 
     return col_type_kind.sql(dialect)
 
 
-def to_col_type_normalized(column):
+def to_col_type_normalized(column: ColumnDef) -> str | None:
     """Get normalised (lowercase) base type name from a column definition.
 
     Args:
@@ -497,9 +513,8 @@ def to_col_type_normalized(column):
     Returns:
         Normalised type name (e.g., 'varchar', 'int') or None if unavailable.
     """
-    col_type = column.args.get("kind")
+    col_type = _get_col_kind(column)
     if col_type is None or col_type.this is None:
-        logger.debug("Column %s has no type kind information", getattr(column, "name", "unknown"))
         return None
     col_type_name = col_type.this.name
     return col_type_name.lower() if col_type_name else None
@@ -509,10 +524,10 @@ def get_description(column: sqlglot.expressions.ColumnDef) -> str | None:
     """Get the description from column comments.
 
     Args:
-        column (sqlglot.expressions.ColumnDef): The column definition.
+        column: The column definition.
 
     Returns:
-        str | None: The description if available, otherwise None.
+        The description if available, otherwise None.
     """
     for constraint in column.args.get("constraints", []):
         if isinstance(constraint.kind, sqlglot.exp.CommentColumnConstraint):
@@ -527,43 +542,52 @@ def get_max_length(column: sqlglot.expressions.ColumnDef) -> int | None:
     """Get the maximum length for string types.
 
     Args:
-        column (sqlglot.expressions.ColumnDef): The column definition.
+        column: The column definition.
 
     Returns:
-        int | None: The maximum length if applicable, otherwise None.
+        The maximum length if applicable, otherwise None.
     """
     col_type = to_col_type_normalized(column)
     if col_type is None:
         return None
     if col_type not in ["varchar", "char", "nvarchar", "nchar"]:
         return None
-    col_params = list(column.args["kind"].find_all(sqlglot.expressions.DataTypeParam))
+
+    kind = _get_col_kind(column)
+    if kind is None:
+        return None
+
+    col_params = list(kind.find_all(sqlglot.expressions.DataTypeParam))
     max_length_str = None
     if len(col_params) == 0:
         return None
-    if len(col_params) == 1:
-        max_length_str = col_params[0].name
-    if len(col_params) == 2:
-        max_length_str = col_params[1].name
+
+    max_length_str = col_params[0].name
+
     if max_length_str is not None:
         return int(max_length_str) if max_length_str.isdigit() else None
 
 
-def get_precision_scale(column):
+def get_precision_scale(column: sqlglot.expressions.ColumnDef) -> tuple[int | None, int | None]:
     """Get the precision and scale for decimal/numeric types.
 
     Args:
-        column (sqlglot.expressions.ColumnDef): The column definition.
+        column: The column definition.
 
     Returns:
-        tuple[int | None, int | None]: The precision and scale if applicable, otherwise (None, None).
+        Tuple of (precision, scale) if applicable, otherwise (None, None).
     """
     col_type = to_col_type_normalized(column)
     if col_type is None:
         return None, None
     if col_type not in ["decimal", "numeric", "float", "number"]:
         return None, None
-    col_params = list(column.args["kind"].find_all(sqlglot.expressions.DataTypeParam))
+
+    kind = _get_col_kind(column)
+    if kind is None:
+        return None, None
+
+    col_params = list(kind.find_all(sqlglot.expressions.DataTypeParam))
     if len(col_params) == 0:
         return None, None
     if len(col_params) == 1:
@@ -603,61 +627,14 @@ def map_type_from_sql(sql_type: str | None, dialect: Dialects | None = None) -> 
     if sql_type_normed.startswith("interval"):
         return "variant"
 
-    # Exact matches for specific types
-    exact_type_map = {
-        "date": "date",
-        "time": "string",
-        "datetimeoffset": "timestamp_tz",
-        "uniqueidentifier": "string",  # SQL Server
-        "json": "string",
-        "xml": "string",
-        "clob": "text",
-        "nclob": "text",
-        "blob": "bytes",
-        "bfile": "bytes",
-        "byte": "bytes",  # Teradata
-        "real": "float",  # Teradata 32-bit float
-        "number": "number",
-    }
-
     # Teradata-specific: DECIMAL without parameters is NUMBER type
     if sql_type_normed == "decimal" and dialect == sqlglot.dialects.Dialects.TERADATA:
         return "number"
 
-    if sql_type_normed in exact_type_map:
-        return exact_type_map[sql_type_normed]
+    if sql_type_normed in EXACT_TYPE_MAP:
+        return EXACT_TYPE_MAP[sql_type_normed]
 
-    # Prefix-based matches
-    # IMPORTANT: Order matters! Longer prefixes must come before shorter ones to avoid
-    # incorrect matches. For example, "bigint" must be checked before "int", otherwise
-    # "bigint" would incorrectly match as "int". The list is ordered from longest to
-    # shortest prefix within each type family.
-    prefix_type_map = [
-        ("bigint", "long"),
-        ("tinyint", "int"),
-        ("smallint", "int"),
-        ("integer", "int"),
-        ("int", "int"),
-        ("nvarchar", "string"),
-        ("varchar", "string"),
-        ("nchar", "string"),
-        ("ntext", "string"),
-        ("char", "string"),
-        ("text", "string"),
-        ("string", "string"),
-        ("varbinary", "bytes"),
-        ("binary", "bytes"),
-        ("raw", "bytes"),
-        ("double", "double"),
-        ("float", "float"),
-        ("numeric", "decimal"),
-        ("decimal", "decimal"),  # DECIMAL with parameters -> decimal type
-        ("bool", "boolean"),
-        ("bit", "boolean"),
-        ("timestamp", "timestamp"),  # Handle with special logic below
-    ]
-
-    for prefix, target_type in prefix_type_map:
+    for prefix, target_type in PREFIX_TYPE_MAP:
         if sql_type_normed.startswith(prefix):
             # Special handling for timestamp types
             if prefix == "timestamp":
@@ -694,14 +671,17 @@ def map_timestamp(timestamp_type: str) -> str:
             return "timestamp_ntz"
 
 
-def read_file(path) -> str:
+def read_file(path: str) -> str:
     """Read the content of a file.
 
     Args:
-        path (str): The file path.
+        path: The file path.
 
     Returns:
-        str: The content of the file.
+        The content of the file.
+
+    Raises:
+        DataContractException: If the file does not exist.
     """
     if not pathlib.Path(path).exists():
         raise DataContractException(
@@ -714,3 +694,57 @@ def read_file(path) -> str:
     with pathlib.Path(path).open("r") as file:
         file_content = file.read()
     return file_content
+
+
+def _cleanup_teradata_sql(sql: str) -> str:
+    """Clean up SQL after removing Teradata INTERVAL columns.
+
+    Args:
+        sql: The SQL string to clean up.
+
+    Returns:
+        Cleaned SQL string.
+    """
+    # Clean up any double commas that might result from removal
+    sql = re.sub(r",\s*,", ",", sql)
+    # Clean up trailing comma before closing parenthesis
+    sql = re.sub(r",\s*\)", ")", sql)
+    # Clean up comma followed by newline then closing paren
+    sql = re.sub(r",\s*\n\s*\)", ")", sql)
+    return sql
+
+
+def _preprocess_teradata_sql(sql: str) -> str:
+    """Pre-process Teradata SQL to handle INTERVAL types that sqlglot cannot parse.
+
+    Teradata INTERVAL types (INTERVAL YEAR TO MONTH, INTERVAL DAY TO SECOND) are not
+    fully supported by sqlglot. This function removes INTERVAL column definitions
+    from the SQL to allow parsing of other columns.
+
+    Args:
+        sql: The raw SQL string.
+
+    Returns:
+        SQL string with INTERVAL column definitions removed.
+
+    Note:
+        This is a workaround for sqlglot limitations. INTERVAL columns will not
+        appear in the resulting data contract. A warning is logged when columns
+        are removed.
+    """
+    # Check if any INTERVAL columns exist before modifying
+    if re.search(TERADATA_INTERVAL_PATTERN, sql, flags=re.MULTILINE | re.IGNORECASE):
+        logger.warning(
+            "Teradata INTERVAL column definitions detected and will be skipped. "
+            "These columns are not supported by the SQL parser."
+        )
+
+    # Remove INTERVAL column definitions (entire lines)
+    processed_sql = re.sub(
+        TERADATA_INTERVAL_PATTERN,
+        "",
+        sql,
+        flags=re.MULTILINE | re.IGNORECASE,
+    )
+
+    return _cleanup_teradata_sql(processed_sql)
